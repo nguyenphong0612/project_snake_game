@@ -3,7 +3,7 @@ from random import randint as r
 from tkinter import *
 pygame.init()
 screen = pygame.display.set_mode((600, 600))
-pygame.display.set_caption("Snake_Game")
+pygame.display.set_caption("Project_Codgym - Snake_Game")
 screen.fill([100, 100, 100]) # màu nền ban đầu
 # Tạo các biến màu
 BLACK = (0, 0, 0)
@@ -11,139 +11,157 @@ GREY = (100, 100, 100)
 BLUE = (0, 0, 255)
 GREEN = (0, 200, 0)
 YELLOW = (255, 255, 0)
+BROWN = (100, 0, 0)
+PINK = (255, 100, 255)
+ORANGE = (255, 100, 0)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
-Bg = GREY
+color_Bg = GREY
 # Tạo tần số quét mành
 clock = pygame.time.Clock()
+# Tạo các lớp đối tượng
+# Lớp rắn, thức ăn, vật cản 
 # Khởi tạo ban đầu cho các đối tượng	
-snk_x, snk_y = 300, 300	# tọa độ x, y của rắn
-#snake_head = [snk_x, snk_y] # đầu rắn
-total_snk = []
+# Rắn
+snk_x, snk_y = 300, 300
+snk_total = [] # toàn bộ con rắn lúc đầu
 length_snk = 1	# độ dài rắn
+color_snake = BLACK
+# Thức ăn
 food_x, food_y = 100, 100 # tọa độ của thức ăn
-food_first = [food_x, food_y] # thức ăn 
+food_first = [food_x, food_y] # thức ăn ban đầu
 food_total = [food_first]
+color_food = (r(0,255), 255, r(0,255)) # màu thức ăn luôn thay đổi
 amount_food = 1
-color_snake = BLACK	# màu sắc
-color_food = GREEN
-size = 10	# kích thước
-# Biến sử dụng trong hàm thông báo
-size_font = 30
-arialFont = pygame.font.SysFont("Arial", size_font)
-font_color = BLACK # màu của font
-msg = ""
-"""mesg = arialFont.render(msg, True, font_color)
-textRect = mesg.get_rect()
-def show_message(m_x, m_y):
-	textRect.center(m_x, m_y)
-	pygame.blit(mesg, textRect)"""
-# Tạo các đối tượng
+# vật cản
+global trap_x
+global trap_y
+trap_x, trap_y = 500, 500
+trap_total = [[trap_x, trap_y], [trap_x+10, trap_y+10]]
+color_trap = ORANGE
+amount_trap = 2
+speed = 10	# tốc độ di chuyển
+size = 10	# kích thước (dùng chung cho lớp)
+# định nghĩa lớp
 class Object:
-	def __init__(self, object_total, color, length):
+	def __init__(self, object_total, color):
 		self.total = object_total
 		self.color = color
-		self.len = length
 	def show_object(self):
 		for obj in self.total:
 			pygame.draw.rect(screen, self.color, (obj[0], obj[1], size, size))	
-# Tạo đối tượng Message
+# Tạo lớp Message
+# khởi tạo ban đầu 
+font_color_begin = BLACK # màu của font
+font_color_continue = BLACK
+font_color_level = BLACK
+in_click_begin = False
+in_click_continue = False
+# định nghĩa lớp Message
 class Message:
-	def __init__(self, msg, color, x, y):
+	def __init__(self, msg, size_font, font_color, x, y):
 		self.msg = msg
-		self.color = color
+		self.size_font = size_font
+		self.color = font_color
 		self.x = x
 		self.y = y
 	# Xây dựng hàm thông báo	
 	def show_messge(self):
-		#for m in self.msg:
+		arialFont = pygame.font.SysFont("Arial", self.size_font)
 		mesg = arialFont.render(self.msg, True, self.color)
-		textRect = mesg.get_rect()
-		textRect.center = (self.x, self.y)
-		"""self.w = textRect[2]
-		self.h = textRect[3]"""
-		screen.blit(mesg, textRect)
-# xây dựng hàm đóng gói đối tượng
-# nghiên cứu thêm để xây dựng hàm (nếu còn thời gian)
-"""def total_obj(total, object, x, y, length):
-	object = []
-	total = [object]
-	object.append(x)
-	object.append(y)
-	total.append(object)
-	if len(total)>length:
-		del total[0]
-	return total"""
-# Tạo các biến khác
-bg_sound = pygame.mixer.Sound("sound_game/bg_1.mp3")
-eat_sound = pygame.mixer.Sound("sound_game/eat_1.mp3")
+		self.textRect = mesg.get_rect()
+		self.textRect.center = (self.x, self.y)
+		screen.blit(mesg, self.textRect)
+# Tạo các biến âm thanh
+bg_sound = pygame.mixer.Sound("sound_game/background.mp3")
+food_sound = pygame.mixer.Sound("sound_game/food.mp3")
+eat_sound = pygame.mixer.Sound("sound_game/eat.mp3")
+win_sound = pygame.mixer.Sound("sound_game/win.mp3")
+GameOver_sound = pygame.mixer.Sound("sound_game/gameover.mp3")
+# Biến chương trình chơi
+running = True # chạy chương trình chính
+game_close = True # chạy chương trình chơi
 right = False # Biến rẽ phải
 left = False  # Biến rẽ phải
-running = True # chạy chương trình
-
-count = 0	# đếm chuyển động 
-delta = 10	# tốc độ di chuyển
-score, hscore = 0, 0 # điểm số và mức điểm cao nhất
-escape = 0 # biến cố định khối lượng thức ăn
 # Biến khi người chơi thua
-#game_close = False 
-count_pause = 0
+game_pause = False
+count = 0	# đếm chuyển động 
+count_pause = 0 # đếm số lần ứng mạng
+score, hscore = 0, 0 # điểm và điểm cao
+level = 1 # cấp độ game
+escape = 0 # biến thoát khỏi vòng lặp
 # Biến khi rắn săn mồi
 finish_eat = False
-level =1 
 
-#m_x, m_y = 300, 50 # tọa độ xuất hiện
-game_pause = False
-game_close = True
 while running:		
 	clock.tick(12) # 12 hình trên giây
-	screen.fill(Bg) # nhất định phải đưa vào, không sẽ tạo vết (bóng) của các ojb
-	#pygame.mixer.Sound.play(bg_sound)
-	#pygame.mixer.Sound.play(eat_sound)
-	#pygame.draw.rect(screen, snake.color, (snake.x, snake.y, snake.size, snake.size))
-	#print(message)
+	screen.fill(color_Bg) # nhất định phải đưa vào, không sẽ tạo vết (bóng) của các ojb
+	# Kiểm tra vị trí của chuột
 	mouse_x, mouse_y = pygame.mouse.get_pos()
-	# Khởi tạo các đối tượng 
-	#snake = Object(total_snk, color_snake, length_snk)
-	#food = Object(food_total, color_food, amount_food)
-	m_start = f"BeGin"
-	msg_start = Message(m_start, font_color, 300, 270)
-	m_continue = f"Continue"
-	msg_continue = Message(m_continue, font_color, 300, 330)
-	list_msg = [msg_start, msg_continue]
-	# show các đối tượng trên màn hình
-	#snake.show_object()
-	#food.show_object()
-	for msg in list_msg:
-		
-		#msg_continue.show_messge()
-		if (msg.x-50<=mouse_x)&(mouse_x<=msg.x+50)\
-			&(msg.y-10<=mouse_y)&(mouse_y<=msg.y+10):
-			font_color = GREEN
-			in_click = True
-			pygame.draw.line(screen, font_color, (msg.x-msg.w/2, msg.y+msg.h/2+5),(msg.x+msg.w/2, msg.y+msg.h/2+5))
+	# kiểm tra khi kết thúc game
+	if (3 - count_pause < 0) or (score < 0):
+		m_end = "GameOver"
+		msg_end = Message(m_end, 80, RED, 300, 300)
+		msg_end.show_messge()
+		pygame.mixer.Sound.play(GameOver_sound)
+	# khi thắng cuộc
+	elif score >= 50:
+		m_win = "You Win!"
+		msg_win = Message(m_win, 80, PINK, 300, 300)
+		msg_win.show_messge()
+		pygame.mixer.Sound.play(win_sound)
+	# khi bắt đầu khởi động
+	else:
+		m_start = f"BeGin"
+		msg_start = Message(m_start, 50, font_color_begin, 300, 270)
+		msg_start.show_messge()
+		m_continue = f"Continue"
+		msg_continue = Message(m_continue, 50, font_color_continue, 300, 330)
+		msg_continue.show_messge()
+		# kiểm tra khi chuột ở vị trí của các lựa chọn
+		# kiểm tra chuột ở Begin
+		if (msg_start.x-msg_start.textRect[2]/2<=mouse_x)&(mouse_x<=msg_start.x+msg_start.textRect[2]/2)\
+		&(msg_start.y-msg_start.textRect[3]/2<=mouse_y)&(mouse_y<=msg_start.y+msg_start.textRect[3]/2):
+			# thay đổi màu và gạch chân
+			font_color_begin = BLUE
+			in_click_begin = True
+			pygame.draw.line(screen, BLUE, (msg_start.textRect[0],msg_start.textRect[1]+msg_start.textRect[3]-3),\
+					(msg_start.textRect[0]+msg_start.textRect[2],msg_start.textRect[1]+msg_start.textRect[3]-3), 3)
 		else:
-			font_color = BLACK
-			in_click = False
-		msg.show_messge()
+			font_color_begin = BLACK
+			in_click_begin = False
+		# kiểm tra chuột ở vị trí contunue
+		if (msg_continue.x-msg_continue.textRect[2]/2<=mouse_x)&(mouse_x<=msg_continue.x+msg_continue.textRect[2]/2)\
+			&(msg_continue.y-msg_continue.textRect[3]/2<=mouse_y)&(mouse_y<=msg_continue.y+msg_continue.textRect[3]/2):
+				# thay đổi màu và gạch chân
+				font_color_continue = BLUE
+				in_click_continue = True
+				pygame.draw.line(screen, BLUE, (msg_continue.textRect[0],msg_continue.textRect[1]+msg_continue.textRect[3]-3),\
+						(msg_continue.textRect[0]+msg_continue.textRect[2],msg_continue.textRect[1]+msg_continue.textRect[3]-3), 3)
+		else:
+			font_color_continue = BLACK
+			in_click_continue = False
+	
 	while game_close == False:
-		clock.tick(12) # 12 hình trên giây
-		screen.fill(Bg) # nhất định phải đưa vào, không sẽ tạo vết (bóng) của các ojb
+		# luôn kiểm tra xem có thua không
+		game_close = (3 - count_pause < 0) or (score < 0) 
+		clock.tick(15) # 12 hình trên giây
+		screen.fill(color_Bg) # nhất định phải đưa vào, không sẽ tạo vết (bóng) của các ojb
+		#pygame.mixer.Sound.play(bg_sound) - do chất lượng nhạc thấp nên chưa muốn đưa vào
 		mouse_x, mouse_y = pygame.mouse.get_pos()# lấy tọa độ của chuột
 		# Tạo các đối tượng của game
-		snake = Object(total_snk, color_snake, length_snk)
-		food = Object(food_total, color_food, amount_food)
-		msg = f"hscore: {hscore}   " + f"score: {score}"
-		message = Message(msg, font_color, 300, 50)
-		
+		snake = Object(snk_total, color_snake)
+		food = Object(food_total, color_food)
+		trap = Object(trap_total, color_trap)
+		msg_score = f"hscore: {hscore}   " + f"score: {score}"
+		msg_level = f"Level {level}"
+		messg_score = Message(msg_score, 30, YELLOW, 300, 50)
+		messg_level = Message(msg_level, 30, BROWN, 300, 100)
 		# show các đối tượng trên màn hình
 		snake.show_object()
 		food.show_object()
-		message.show_messge()
-		# thay đổi màu chữ khi đưa chuột đến
-		if (200<=mouse_x)&(mouse_x<=400)\
-		&(40<=mouse_y)&(mouse_y<=60):
-			font_color = GREEN
+		messg_score.show_messge()
+		messg_level.show_messge()
 		# chơi game thôi nào
 		# Bắt các sự kiện của người chơi
 		for event in pygame.event.get():
@@ -158,8 +176,8 @@ while running:
 						color_snake = (r(0,255),r(0,255),r(0,255))
 					# thay đổi màu màn hình
 					else:
-						Bg = (r(0,255),r(0,255),r(0,255))
-			# bắt các sự kiện bấm các phím di chuyển -->; <--
+						color_Bg = (r(0,255),r(0,255),r(0,255))
+			# sự kiện bấm các phím di chuyển --> ; <--
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_RIGHT:
 					left = False
@@ -173,37 +191,38 @@ while running:
 					if game_pause == True:
 						score -= 1
 						count_pause += 1
-						game_pause = (3 - count_pause) <=0
-						game_close = (4 - count_pause < 0) & (score < 0) 
+						game_pause = ((2 - count_pause) < 0) or (score < 0)
+						
 		snake_head = [] # format list snake
 		# Thuật toán di chuyển
 		# luôn rẽ phải so với hướng di chuyển
 		if right: 
 			if count%2 == 1:
-				snk_x += (1 - 2*((count//2)%2))*delta
+				snk_x += (1 - 2*((count//2)%2))*speed
 			else:
-				snk_y += (2*((count//2)%2) - 1)*delta
+				snk_y += (2*((count//2)%2) - 1)*speed
 		# luôn rẽ trái so với hướng di chuyển
 		elif left:
 			if count%2 == 1:
-				snk_x += (2*((count//2)%2) - 1)*delta
+				snk_x += (2*((count//2)%2) - 1)*speed
 			else:
-				snk_y += (2*((count//2)%2) - 1)*delta
-		# cập nhật lại tọa độ sau di chuyển và gọi hàm đóng gói
+				snk_y += (2*((count//2)%2) - 1)*speed
+		# cập nhật lại tọa độ sau di chuyển và đóng gói đối tượng
 		snake_head.append(snk_x)
 		snake_head.append(snk_y)
-		total_snk.append(snake_head)
-		if len(total_snk)>length_snk:
-				del total_snk[0]
-		
+		snk_total.append(snake_head)
+		# luôn duy trì độ dài rắn
+		if len(snk_total)>length_snk:
+			del snk_total[0]
 		# rắn ăn thức ăn và cách tính điểm
 		for food in food_total:
 			if (food[0]-size<=snk_x)&(snk_x<=food[0]+size)\
 				&(food[1]-size<=snk_y)&(snk_y<=food[1]+size):
 				food_total.remove(food)
-				#amount_food -= 1 # nghiên cứu thêm
 				length_snk += 1
 				score += 1
+				pygame.mixer.Sound.stop(bg_sound)
+				pygame.mixer.Sound.play(eat_sound)
 				if score > hscore:
 					hscore = score
 				finish_eat = True
@@ -212,58 +231,88 @@ while running:
 		if finish_eat == True:
 			# cập nhật lại vị trí của thức ăn
 			for i in range(amount_food):
-				#for j in range(2):
 				food[0] = 50*r(1, 11)
 				food[1] = 80+ 40*r(0, 12)
 				food_total.append([food[0], food[1]])
-			#print("-"*10)
-		#print(food_total)
+		# Luôn duy trì số lượng thức ăn cố định
 		if len(food_total)>amount_food:
 			del	food_total[-1]
-		# cứ sau 5 lần ăn thức ăn thì số lượng thức ăn tăng lên
-		if (score % 5 == 0) & (score > escape):# thoát khỏi vòng lặp khi score chia hết cho 5
-			amount_food += 1
-			level += 1
+		# cứ sau 10 lần ăn thức ăn thì load âm thanh mới và thoát ngay sau đó
+		if (score % 10 == 0) & (score > escape):# thoát khỏi vòng lặp khi score chia hết cho 10
+			pygame.mixer.Sound.stop(bg_sound)
+			pygame.mixer.Sound.play(food_sound)
+			color_trap = (255, r(100, 255), r(100, 255))
 			escape = score +1 # gán lại escape để phủ định conditional
-		#food_total.append(food_first)
-		#print(food_total)    
-		#print(total_snk) 
-		# Trường hợp rắn chạm tường          
-		for i in [0, 590]:
-			for j in snake_head:
-				if j == i:
-					game_pause = True
+		# cập nhật giá trị của các biến so với điểm số			
+		amount_food = 1 + score//10
+		amount_trap = 2*(1 + (score//10))
+		level = 1 + score//10 
+		speed = 10 + 5*((score//10)//4 + (score//10)//3)
+		size = 10 + 5*((score//10)//4 + (score//10)//3)
+		# Từ level 2 trở đi sẽ thay đổi vị trí của vật cản sau mỗi lẫn ăn		
+		if (level >= 2) & finish_eat:
+			# luôn đảm bảo rằng vật cản xuất hiện với khoảng cách so với rắn = một số nguyên lần của tốc độ
+			trap_x = snk_x + speed*r((-snk_x)//speed, (600 - 2*speed - snk_x)//speed)
+			trap_y = snk_y + speed*r(((80 - snk_y)//speed), (600 - 2*speed - snk_y)//speed)
+			trap_total.append([trap_x, trap_y])
+			trap_total.append([trap_x+speed, trap_y+speed])
+		# Luôn duy trì số lượng vật cản 
+		if len(trap_total) > amount_trap:
+			trap_total = trap_total[2:]
+		trap.show_object()
+		if score == 50:
+			game_close = True
+		# Trường hợp rắn chạm tường 
+		for snk in snake.total: 
+			for j in snk:        
+				if ((j > - speed) & (j < speed)) or ((j > 600 - speed) & (j < 600 +speed)):
+						game_pause = True
 		# Trường hợp cắn đuôi			
 		if length_snk >=5:
 			for snk in snake.total[1:]:
 				if snk == snake.total[0]:
 					game_pause = True
+		# Trường hợp rắn chạm vào vật cản
+		for trap in trap.total:
+			if trap in snake.total:
+				game_pause = True
 		# khi tạm dừng game			
-		if game_pause:
-			if count_pause < 3:
-				msg_gclose = f"you lose! Please press space key to continue!"
-			elif count_pause >=3 or (score < 0):
-				msg_gpause= f"GameOver"
-			message_gpause = Message(msg_gclose, RED, 300, 200)
-			message_gpause.show_messge()
-			#message.show_messge(msg, BLACK, 300, 200)
-			#delta = 0
+		if game_pause == True:
 			snk_x, snk_y = 300, 300
-			length_snk = 1
+			snk_total = []	
 			amount_food = 1
-			#total_snk = total_snk[-2]
+			if (count_pause >= 3) or (score < 0):
+				break
+			else:				
+				m_gpause= "You lose! Press space key to continue!"
+			msg_gpause = Message(m_gpause, 40, BLACK, 300, 200)
+			msg_gpause.show_messge()
+		# ghi hscore, score, snk_x, snk_y vào một file
+		with open("parameters.txt", "w") as f:
+			for i in [score, hscore, snk_x, snk_y]:
+				f.write(f"{i}" + "\n")				
 		pygame.display.flip()
-		
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT: # Kết thúc trò chơi
 			running = False
 		if event.type == pygame.MOUSEBUTTONDOWN: # bấm chuột
-			if event.button == 1 & in_click: # bấm chuột trái
+			# Khi chọn begin
+			if event.button == 1 & in_click_begin:
 				game_close = False
-							
+			# Khi chọn continue
+			elif event.button == 1 & in_click_continue:
+				game_close = False
+				# load thông số từ file đã lưu
+				with open("parameters.txt", "r") as f:
+					remembers = f.read().split("\n")
+					if "" in remembers:
+						remembers.remove("")
+					score = int(remembers[0])
+					hscore = int(remembers[1])
+					snk_x = int(remembers[2])
+					snk_y = int(remembers[3])
+					
 	pygame.display.flip()
 
 pygame.quit()
-sys.exit()
-
-    
+sys.exit()    
