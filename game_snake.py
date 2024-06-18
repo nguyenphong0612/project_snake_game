@@ -31,7 +31,7 @@ color_snake = BLACK
 food_x, food_y = 100, 100 # tọa độ của thức ăn
 food_first = [food_x, food_y] # thức ăn ban đầu
 food_total = [food_first]
-color_food = (r(0,255), 255, r(0,255)) # màu thức ăn luôn thay đổi
+color_food = GREEN # màu thức ăn luôn thay đổi
 amount_food = 1
 # vật cản
 global trap_x
@@ -77,6 +77,7 @@ bg_sound = pygame.mixer.Sound("sound_game/background.mp3")
 food_sound = pygame.mixer.Sound("sound_game/food.mp3")
 eat_sound = pygame.mixer.Sound("sound_game/eat.mp3")
 win_sound = pygame.mixer.Sound("sound_game/win.mp3")
+g_pause_sound = pygame.mixer.Sound("sound_game/game_pause.mp3")
 GameOver_sound = pygame.mixer.Sound("sound_game/gameover.mp3")
 # Biến chương trình chơi
 running = True # chạy chương trình chính
@@ -151,6 +152,7 @@ while running:
 		mouse_x, mouse_y = pygame.mouse.get_pos()# lấy tọa độ của chuột
 		# Tạo các đối tượng của game
 		snake = Object(snk_total, color_snake)
+		color_food = (r(0,255), 255, r(0,255))
 		food = Object(food_total, color_food)
 		trap = Object(trap_total, color_trap)
 		msg_score = f"hscore: {hscore}   " + f"score: {score}"
@@ -283,10 +285,14 @@ while running:
 			amount_food = 1
 			if (count_pause >= 3) or (score < 0):
 				break
-			else:				
+			else:	
+				pygame.mixer.Sound.stop(bg_sound)
+				pygame.mixer.Sound.play(g_pause_sound)			
 				m_gpause= "You lose! Press space key to continue!"
 			msg_gpause = Message(m_gpause, 40, BLACK, 300, 200)
 			msg_gpause.show_messge()
+		else: 
+			pygame.mixer.Sound.stop(g_pause_sound)
 		# ghi hscore, score, snk_x, snk_y vào một file
 		with open("parameters.txt", "w") as f:
 			for i in [score, hscore, snk_x, snk_y]:
