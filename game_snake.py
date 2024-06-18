@@ -84,6 +84,8 @@ running = True # chạy chương trình chính
 game_close = True # chạy chương trình chơi
 right = False # Biến rẽ phải
 left = False  # Biến rẽ phải
+R = True # Biến rẽ phải
+L = True # Biến rẽ trái
 # Biến khi người chơi thua
 game_pause = False
 count = 0	# đếm chuyển động 
@@ -184,10 +186,12 @@ while running:
 				if event.key == pygame.K_RIGHT:
 					left = False
 					right = True
+					R = not R
 					count += 1
 				if event.key == pygame.K_LEFT:
 					right = False
 					left = True
+					L = not L
 					count += 1
 				if event.key == pygame.K_SPACE:
 					if game_pause == True:
@@ -200,15 +204,27 @@ while running:
 		# luôn rẽ phải so với hướng di chuyển
 		if right: 
 			if count%2 == 1:
-				snk_x += (1 - 2*((count//2)%2))*speed
+				if R == True:
+					snk_x += (2*((count//2)%2) - 1)*speed
+				else:
+					snk_x += (1 - 2*((count//2)%2))*speed
 			else:
-				snk_y += (2*((count//2)%2) - 1)*speed
+				if R == True:
+					snk_y += (2*((count//2)%2) - 1)*speed
+				else: 
+					snk_y += (1 - 2*((count//2)%2))*speed
 		# luôn rẽ trái so với hướng di chuyển
 		elif left:
 			if count%2 == 1:
-				snk_x += (2*((count//2)%2) - 1)*speed
+				if L == True:
+					snk_x += (1 - 2*((count//2)%2))*speed
+				else: 
+					snk_x += (2*((count//2)%2) - 1)*speed
 			else:
-				snk_y += (2*((count//2)%2) - 1)*speed
+				if L == True:
+					snk_y += (2*((count//2)%2) - 1)*speed
+				else:
+					snk_y += (1 - 2*((count//2)%2))*speed
 		# cập nhật lại tọa độ sau di chuyển và đóng gói đối tượng
 		snake_head.append(snk_x)
 		snake_head.append(snk_y)
@@ -257,7 +273,7 @@ while running:
 			trap_x = snk_x + speed*r((-snk_x)//speed, (600 - 2*speed - snk_x)//speed)
 			trap_y = snk_y + speed*r(((80 - snk_y)//speed), (600 - 2*speed - snk_y)//speed)
 			trap_total.append([trap_x, trap_y])
-			trap_total.append([trap_x+speed, trap_y+speed])
+			trap_total.append([trap_x+size, trap_y+size])
 		# Luôn duy trì số lượng vật cản 
 		if len(trap_total) > amount_trap:
 			trap_total = trap_total[2:]
@@ -280,7 +296,7 @@ while running:
 				game_pause = True
 		# khi tạm dừng game			
 		if game_pause == True:
-			snk_x, snk_y = 300, 300
+			snk_x, snk_y = trap_x + speed*((300-trap_x)//speed), trap_y + speed*((300-trap_y)//speed)
 			snk_total = []	
 			amount_food = 1
 			if (count_pause >= 3) or (score < 0):
@@ -321,4 +337,4 @@ while running:
 	pygame.display.flip()
 
 pygame.quit()
-sys.exit()    
+sys.exit()    # 270 dòng code
