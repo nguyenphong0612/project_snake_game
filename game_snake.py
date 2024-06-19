@@ -55,8 +55,10 @@ class Object:
 font_color_begin = BLACK # màu của font
 font_color_continue = BLACK
 font_color_level = BLACK
+font_color_escape = BLACK
 in_click_begin = False
 in_click_continue = False
+in_click_escape = False
 # định nghĩa lớp Message
 class Message:
 	def __init__(self, msg, size_font, font_color, x, y):
@@ -99,14 +101,31 @@ finish_eat = False
 while running:		
 	clock.tick(12) # 12 hình trên giây
 	screen.fill(color_Bg) # nhất định phải đưa vào, không sẽ tạo vết (bóng) của các ojb
-	# Kiểm tra vị trí của chuột
+	m_escape = "Click here or click X to quit game, please!"
+	msg_escape = Message(m_escape, 30, font_color_escape, 300, 350)
 	mouse_x, mouse_y = pygame.mouse.get_pos()
 	# kiểm tra khi kết thúc game
 	if (3 - count_pause < 0) or (score < 0):
+		for event in pygame.event.get():
+			if event.type == pygame.MOUSEBUTTONDOWN: 
+				if event.button == 1 & in_click_escape:
+					running = False
 		m_end = "GameOver"
-		msg_end = Message(m_end, 80, RED, 300, 300)
+		msg_end = Message(m_end, 80, RED, 280, 300)
 		msg_end.show_messge()
+		msg_escape.show_messge()
+		if (msg_escape.x-msg_escape.textRect[2]/2<=mouse_x)&(mouse_x<=msg_escape.x+msg_escape.textRect[2]/2)\
+		&(msg_escape.y-msg_escape.textRect[3]/2<=mouse_y)&(mouse_y<=msg_escape.y+msg_escape.textRect[3]/2):
+			# thay đổi màu và gạch chân
+			font_color_escape = GREEN
+			in_click_escape = True
+			pygame.draw.line(screen, GREEN, (msg_escape.textRect[0],msg_escape.textRect[1]+msg_escape.textRect[3]-1),\
+					(msg_escape.textRect[0]+msg_escape.textRect[2],msg_escape.textRect[1]+msg_escape.textRect[3]-1), 2)
+		else:
+			font_color_escape = BLACK
+			in_click_escape = False
 		pygame.mixer.Sound.play(GameOver_sound)
+		
 	# khi thắng cuộc
 	elif score >= 50:
 		m_win = "You Win!"
@@ -265,9 +284,14 @@ while running:
 		# cập nhật giá trị của các biến so với điểm số			
 		amount_food = 1 + score//10
 		amount_trap = 2*(1 + (score//10))
-		level = 1 + score//10 
-		speed = 10 + 5*((score//10)//4 + (score//10)//3)
-		size = 10 + 5*((score//10)//4 + (score//10)//3)
+		if score >= 0:
+			level = 1 + score//10 
+			speed = 10 + 5*((score//10)//4 + (score//10)//3)
+			size = 10 + 5*((score//10)//4 + (score//10)//3)
+		else:
+			level = 1
+			speed = 10
+			size = 10
 		# Từ level 2 trở đi sẽ thay đổi vị trí của vật cản sau mỗi lẫn ăn		
 		if (level >= 2) & finish_eat:
 			# luôn đảm bảo rằng vật cản xuất hiện với khoảng cách so với rắn = một số nguyên lần của tốc độ
@@ -336,8 +360,6 @@ while running:
 					hscore = int(remembers[1])
 					snk_x = int(remembers[2])
 					snk_y = int(remembers[3])
-					
 	pygame.display.flip()
-
 pygame.quit()
 sys.exit()    # 270 dòng code
