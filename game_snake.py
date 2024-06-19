@@ -164,6 +164,7 @@ while running:
 		# show các đối tượng trên màn hình
 		snake.show_object()
 		food.show_object()
+		trap.show_object()
 		messg_score.show_messge()
 		messg_level.show_messge()
 		# chơi game thôi nào
@@ -277,23 +278,25 @@ while running:
 		# Luôn duy trì số lượng vật cản 
 		if len(trap_total) > amount_trap:
 			trap_total = trap_total[2:]
-		trap.show_object()
-		if score == 50:
+		
+		if score >= 50:
 			game_close = True
 		# Trường hợp rắn chạm tường 
 		for snk in snake.total: 
 			for j in snk:        
 				if ((j > - speed) & (j < speed)) or ((j > 600 - speed) & (j < 600 +speed)):
-						game_pause = True
+					game_pause = True
 		# Trường hợp cắn đuôi			
 		if length_snk >=5:
 			for snk in snake.total[1:]:
 				if snk == snake.total[0]:
 					game_pause = True
 		# Trường hợp rắn chạm vào vật cản
-		for trap in trap.total:
-			if trap in snake.total:
-				game_pause = True
+		for tr in trap.total:
+			for snk in snake.total:
+				if (tr[0]-size<snk[0])&(snk[0]<tr[0]+size)&\
+				   (tr[1]-size<snk[1])&(snk[1]<tr[1]+ size):
+					game_pause = True
 		# khi tạm dừng game			
 		if game_pause == True:
 			snk_x, snk_y = trap_x + speed*((300-trap_x)//speed), trap_y + speed*((300-trap_y)//speed)
